@@ -91,7 +91,17 @@ class ExpenseServiceTest {
         assertThrows(NotFoundException.class, () -> service.delete(7L));
     }
 
-    /** Test double for the repository's interface projection; record accessors implement it directly. */
+    /** Test double for the repository's interface projection. */
     private record CategorySumRow(Category category, BigDecimal total) implements ExpenseRepository.CategorySum {
+
+        @Override
+        public Category getCategory() {
+            return category;
+        }
+
+        @Override
+        public BigDecimal getTotal() {
+            return total;
+        }
     }
 }

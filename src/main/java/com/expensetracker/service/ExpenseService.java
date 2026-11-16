@@ -85,7 +85,7 @@ public class ExpenseService {
         BigDecimal total = repository.sumAmountBetween(start, endExclusive);
         List<MonthlySummaryResponse.CategoryTotal> byCategory = repository.sumByCategoryBetween(start, endExclusive)
                 .stream()
-                .map(row -> new MonthlySummaryResponse.CategoryTotal(row.category(), row.total()))
+                .map(row -> new MonthlySummaryResponse.CategoryTotal(row.getCategory(), row.getTotal()))
                 .toList();
 
         return new MonthlySummaryResponse(month.toString(), total, byCategory);

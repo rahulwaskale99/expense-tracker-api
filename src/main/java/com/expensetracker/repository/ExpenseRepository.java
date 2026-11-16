@@ -32,10 +32,14 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<CategorySum> sumByCategoryBetween(@Param("start") LocalDate start,
                                            @Param("endExclusive") LocalDate endExclusive);
 
-    /** Read-only view of one aggregated row; a record implements this via its accessors. */
+    /**
+     * Read-only view of one aggregated row. Spring Data interface projections
+     * require getter-style method names matching the query aliases
+     * (getCategory ↔ ... as category).
+     */
     interface CategorySum {
-        Category category();
+        Category getCategory();
 
-        BigDecimal total();
+        BigDecimal getTotal();
     }
 }
