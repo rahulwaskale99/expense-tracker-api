@@ -1,35 +1,18 @@
 # expense-tracker-api
 
-A REST API for tracking personal expenses — CRUD with filtering, bean validation, consistent error shaping, and monthly summaries aggregated in the database. Spring Boot 3 + JPA, Java 21.
+A REST API for recording and reviewing personal expenses. It supports the usual create, read, update, and delete operations, filtering by category or date, and a monthly summary.
 
-Built as a personal project to practice the pieces a production backend actually needs: layered architecture, typed API contracts (records for DTOs), database-side aggregation, profiles for dev/prod, and a test pyramid (fast unit tests + real-MVC web tests).
+The project uses Java 21, Spring Boot 3, Spring Data JPA, and Bean Validation. H2 is used for local development; a PostgreSQL profile is included for running against a real database.
 
-## Features
+## Run it locally
 
-- Full CRUD for expenses with bean validation on every input
-- Filtering by category and date range
-- Monthly summary: grand total + per-category totals, aggregated in SQL (interface projections — no entities loaded)
-- Consistent error bodies (`timestamp`, `status`, `message`, `fieldErrors`) via a `@RestControllerAdvice`; validation failures report per-field messages
-- Dev profile seeds sample data; `postgres` profile for real deployments
-- Test suite: Mockito unit tests for business rules + `@WebMvcTest` for the HTTP contract
-
-## Tech stack
-
-| Layer     | Choice |
-|-----------|--------|
-| Language  | Java 21 |
-| Framework | Spring Boot 3.3 (Web, Data JPA, Validation) |
-| Database  | H2 in-memory (dev), PostgreSQL (prod profile) |
-| Build     | Maven |
-| Tests     | JUnit 5, Mockito, MockMvc |
-
-## Getting started
+You will need JDK 21 and Maven.
 
 ```bash
-mvn spring-boot:run          # starts on :8080 with H2 + sample data
+mvn spring-boot:run
 ```
 
-H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:expenses`, user `sa`)
+The API starts on port `8080` and uses an in-memory H2 database with sample data.
 
 Run the tests:
 
@@ -37,57 +20,67 @@ Run the tests:
 mvn test
 ```
 
-## API
+The H2 console is available at [http://localhost:8080/h2-console](http://localhost:8080/h2-console).
 
-| Method | Path                        | Description                          |
-|--------|-----------------------------|--------------------------------------|
-| POST   | `/api/v1/expenses`          | Create an expense (201 + Location)   |
-| GET    | `/api/v1/expenses`          | List, optional `category`, `fromDate`, `toDate` |
-| GET    | `/api/v1/expenses/{id}`     | Fetch one (404 if unknown)           |
-| PUT    | `/api/v1/expenses/{id}`     | Replace an expense                   |
-| DELETE | `/api/v1/expenses/{id}`     | Delete (204)                         |
-| GET    | `/api/v1/expenses/summary`  | Monthly totals (`?month=yyyy-MM`)    |
+- JDBC URL: `jdbc:h2:mem:expenses`
+- Username: `sa`
+- Password: leave blank
 
-### Examples
+## Endpoints
+
+All endpoints are under `/api/v1/expenses`.
+
+| Method | Path | What it does |
+|---|---|---|
+| POST | `/` | Create an expense. Returns 201 and a Location header. |
+| GET | `/` | List expenses. Optional filters: `category`, `fromDate`, `toDate`. |
+| GET | `/{id}` | Get one expense. |
+| PUT | `/{id}` | Replace an expense. |
+| DELETE | `/{id}` | Delete an expense. Returns 204. |
+| GET | `/summary?month=yyyy-MM` | Get totals for a month. Defaults to the current month. |
+
+For example, create an expense:
 
 ```bash
-# create
-curl -X POST http://localhost:8080/api/v1/expenses \
-  -H "Content-Type: application/json" \
-  -d '{"description": "Groceries", "amount": 86.40, "category": "FOOD", "date": "2026-11-15"}'
-
-# monthly summary
-curl http://localhost:8080/api/v1/expenses/summary?month=2026-11
+curl -X POST http://localhost:8080/api/v1/expenses \\
+  -H "Content-Type: application/json" \\
+  -d '{"description":"Groceries","amount":86.40,"category":"FOOD","date":"2026-11-15"}'
 ```
 
-```json
-{
-  "month": "2026-11",
-  "total": 195.90,
-  "byCategory": [
-    { "category": "HOUSING", "total": 150.00 },
-    { "category": "FOOD", "total": 45.90 }
-  ]
-}
+Get the summary for November:
+
+```bash
+curl "http://localhost:8080/api/v1/expenses/summary?month=2026-11"
 ```
 
-## Design notes
+The summary includes the month's total and totals grouped by category.
 
-- **DTOs are records**, the entity never leaves the service layer — the HTTP contract is explicit and immutable.
-- **Amounts are `BigDecimal`** with column precision 12/2 — never doubles for money.
-- **`date` vs `createdAt`**: the user picks the day money was spent; the record creation time is separate. Summaries aggregate over `date`, so backdated entries land in the right month.
-- **Aggregation in the database**, not in Java: `sumByCategoryBetween` is a grouped JPQL query mapped onto an interface projection.
-- **Branching instead of a mega-query** for optional filters — each repository method has a clear, type-safe signature.
+## How the code is organised
 
-## Roadmap
+The controller handles HTTP requests and delegates to the service. The service contains the application rules, and the repository handles database access.
 
-- [ ] Pagination + sorting on the list endpoint (`Pageable`)
-- [ ] CSV import endpoint for bank exports
-- [ ] Budgets per category with alerts when a month crosses the limit
-- [ ] Recurring expenses (rent, subscriptions) generated on schedule
-- [ ] Flyway migrations to replace `ddl-auto`
-- [ ] JWT authentication with per-user data isolation
-- [ ] OpenAPI 3 documentation (springdoc)
-- [ ] Dockerfile + docker-compose (app + PostgreSQL)
-- [ ] Soft delete with audit log
-- [ ] Exchange-rate conversion for foreign-currency expenses
+A few choices worth calling out:
+
+- Request and response DTOs are Java records. The JPA entity is kept inside the application rather than being returned directly from the API.
+- Expense amounts use `BigDecimal`, not `double`.
+- The expense date is separate from the record creation time. This matters when someone enters an expense a few days late.
+- Monthly totals are calculated by the database query instead of loading every expense and adding them up in Java.
+- Validation and exception handling are kept in the API layer, so clients get a consistent error response.
+
+## PostgreSQL profile
+
+The `postgres` profile switches the datasource to PostgreSQL and disables the H2 console. Configure the connection using environment variables:
+
+```bash
+export SPRING_PROFILES_ACTIVE=postgres
+export DB_URL='jdbc:postgresql://localhost:5432/expenses'
+export DB_USERNAME='your-user'
+export DB_PASSWORD='your-password'
+mvn spring-boot:run
+```
+
+The profile uses Hibernate's `ddl-auto=validate`. The schema must already exist; Flyway migrations are not included yet.
+
+## Current scope
+
+This is a small single-user expense API. Authentication, per-user data isolation, pagination, and recurring expenses are not implemented yet. They are possible next steps, but the current API should not be treated as a multi-user service or deployed as-is for real financial data.
