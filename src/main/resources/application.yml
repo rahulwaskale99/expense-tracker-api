@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:expenses;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+
+---
+# Production-style profile: real PostgreSQL, schema managed by migrations (roadmap item).
+# Activate with: SPRING_PROFILES_ACTIVE=postgres DB_URL=... DB_USERNAME=... DB_PASSWORD=...
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  h2:
+    console:
+      enabled: false
