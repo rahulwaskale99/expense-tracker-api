@@ -12,7 +12,13 @@ You will need JDK 21 and Maven.
 mvn spring-boot:run
 ```
 
-The API starts on port `8080` and uses an in-memory H2 database with sample data.
+The API starts on port `8080` and uses an in-memory H2 database. By default, the database starts empty. To load the sample expenses, activate the `dev` profile:
+
+```bash
+SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+```
+
+The sample-data seeder only runs with that profile enabled.
 
 Run the tests:
 
