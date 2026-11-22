@@ -42,7 +42,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception e) {
-        // Log server-side with the stack trace; tell the client nothing useful for attackers.
+        // Keep internal details out of the response. This handler does not log
+        // the exception itself; add server-side logging/monitoring before deployment.
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", null);
     }
 
