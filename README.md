@@ -48,8 +48,8 @@ All endpoints are under `/api/v1/expenses`.
 For example, create an expense:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/expenses \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8080/api/v1/expenses \
+  -H "Content-Type: application/json" \
   -d '{"description":"Groceries","amount":86.40,"category":"FOOD","date":"2026-11-15"}'
 ```
 
@@ -90,3 +90,5 @@ The profile uses Hibernate's `ddl-auto=validate`. The schema must already exist;
 ## Current scope
 
 This is a small single-user expense API. Authentication, per-user data isolation, pagination, and recurring expenses are not implemented yet. They are possible next steps, but the current API should not be treated as a multi-user service or deployed as-is for real financial data.
+
+**Known date-filter limitation:** when a request includes `category` or `toDate` without `fromDate`, the current service uses `1970-01-01` as the lower date bound. Expenses dated before that are therefore omitted from those filtered results. The query behavior needs a code fix and regression tests.
